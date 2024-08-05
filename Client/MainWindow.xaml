@@ -1,31 +1,34 @@
 ﻿<Window x:Class="Client.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Client"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="410" Width="380">
-
+        Title="Tic Tac Toe" Height="450" Width="800"
+        Closing="Window_Closing">
     <Grid>
-
-        <UniformGrid Rows="3" Columns="3" VerticalAlignment="Top" Margin="25,137,25,0">
-            <Button x:Name="btn1" Content="" Height="70" />
-            <Button x:Name="btn2" Content="" Height="70" />
-            <Button x:Name="btn3" Content="" Height="70" />
-
-            <Button x:Name="btn4" Content="" Height="70"/>
-            <Button x:Name="btn5" Content="" Height="70"/>
-            <Button x:Name="btn6" Content="" Height="70"/>
-
-            <Button x:Name="btn7" Content="" Height="70"/>
-            <Button x:Name="btn8" Content="" Height="70"/>
-            <Button x:Name="btn9" Content="" Height="70"/>
-
-        </UniformGrid>
-        <Label x:Name="lblPlayerTurn" Content="Label" HorizontalAlignment="Center" Margin="0,30,0,0" VerticalAlignment="Top" Width="330"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Label x:Name="lblPlayerTurn" Content="Waiting for connection..." HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" Margin="10"/>
+        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="100"/>
+                <RowDefinition Height="100"/>
+                <RowDefinition Height="100"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="100"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="btn1" Grid.Row="0" Grid.Column="0" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="1"/>
+            <Button x:Name="btn2" Grid.Row="0" Grid.Column="1" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="2"/>
+            <Button x:Name="btn3" Grid.Row="0" Grid.Column="2" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="3"/>
+            <Button x:Name="btn4" Grid.Row="1" Grid.Column="0" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="4"/>
+            <Button x:Name="btn5" Grid.Row="1" Grid.Column="1" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="5"/>
+            <Button x:Name="btn6" Grid.Row="1" Grid.Column="2" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="6"/>
+            <Button x:Name="btn7" Grid.Row="2" Grid.Column="0" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="7"/>
+            <Button x:Name="btn8" Grid.Row="2" Grid.Column="1" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="8"/>
+            <Button x:Name="btn9" Grid.Row="2" Grid.Column="2" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="9"/>
+        </Grid>
     </Grid>
-
-
-
 </Window>

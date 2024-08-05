@@ -1,73 +1,97 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
-class Server
+namespace Server
 {
-    static void Main()
+    class Program
     {
-        TcpListener? server = null;
-        try
+        private const int port = 13000;
+        private static TcpListener? listener;
+        private static readonly ConcurrentDictionary<int, TcpClient> clients = new ConcurrentDictionary<int, TcpClient>();
+        private static int clientIdCounter = 0;
+        private static readonly SemaphoreSlim clientSemaphore = new SemaphoreSlim(1, 1);
+
+        static async Task Main(string[] args)
         {
-            // Adres IP i port
-            IPAddress localAddr = IPAddress.Parse("127.0.0.1");
-            int port = 13000;
-
-            // Utwórz serwer na danym adresie i porcie
-            server = new TcpListener(localAddr, port);
-
-            // Start serwera
-            server.Start();
-
-            // Oczekiwanie na połączenie klienta
-            Console.WriteLine("Serwer uruchomiony. Oczekiwanie na połączenie...");
+            listener = new TcpListener(IPAddress.Any, port);
+            listener.Start();
+            Console.WriteLine("Server started...");
 
             while (true)
             {
-                TcpClient client = server.AcceptTcpClient();
-                Console.WriteLine("Połączono z klientem!");
+                var tcpClient = await listener.AcceptTcpClientAsync();
+                int clientId = Interlocked.Increment(ref clientIdCounter);
+                clients[clientId] = tcpClient;
+                Console.WriteLine($"Client {clientId} connected.");
 
-                ClientHandler clientHandler = new ClientHandler(client);
-                clientHandler.HandleClient();
+                _ = HandleClientAsync(clientId, tcpClient);
             }
         }
-        catch (Exception e)
+
+        private static async Task HandleClientAsync(int clientId, TcpClient tcpClient)
         {
-            Console.WriteLine(e.ToString());
+            var buffer = new byte[1024];
+            var stream = tcpClient.GetStream();
+
+            try
+            {
+                while (tcpClient.Connected)
+                {
+                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                    if (bytesRead == 0) break;
+
+                    string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    Console.WriteLine($"Received from client {clientId}: {message}");
+
+                    // Broadcast to other clients
+                    await BroadcastMessageAsync(clientId, message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error with client {clientId}: {ex.Message}");
+            }
+            finally
+            {
+                Console.WriteLine($"Client {clientId} disconnected.");
+                clients.TryRemove(clientId, out _);
+                tcpClient.Close();
+            }
         }
-        finally
+
+        private static async Task BroadcastMessageAsync(int senderId, string message)
         {
-            server?.Stop();
+            await clientSemaphore.WaitAsync();
+
+            try
+            {
+                foreach (var kvp in clients)
+                {
+                    if (kvp.Key == senderId) continue;
+
+                    var client = kvp.Value;
+                    var stream = client.GetStream();
+                    var buffer = Encoding.UTF8.GetBytes(message);
+
+                    try
+                    {
+                        await stream.WriteAsync(buffer, 0, buffer.Length);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error sending to client {kvp.Key}: {ex.Message}");
+                    }
+                }
+            }
+            finally
+            {
+                clientSemaphore.Release();
+            }
         }
-    }
-}
-
-class ClientHandler
-{
-    private TcpClient client;
-
-    public ClientHandler(TcpClient client)
-    {
-        this.client = client;
-    }
-
-    public void HandleClient()
-    {
-        // Obsługa połączenia z klientem
-        NetworkStream stream = client.GetStream();
-        byte[] data = new byte[256];
-        string? responseData = null;
-
-        int bytes = stream.Read(data, 0, data.Length);
-        responseData = Encoding.ASCII.GetString(data, 0, bytes);
-        Console.WriteLine("Otrzymano: {0}", responseData);
-
-        // Odpowiedź do klienta
-        byte[] msg = Encoding.ASCII.GetBytes("Otrzymano twoją wiadomość.");
-        stream.Write(msg, 0, msg.Length);
-
-        // Zamknięcie połączenia
-        client.Close();
     }
 }

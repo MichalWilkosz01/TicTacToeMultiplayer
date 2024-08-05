@@ -5,14 +5,27 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="410" Width="380">
+
     <Grid>
-        <Button x:Name="btnConnect" Content="Połącz" HorizontalAlignment="Left" Margin="592,171,0,0" VerticalAlignment="Top" Click="btnConnect_Click"/>
-        <TextBox x:Name="txtMessage" HorizontalAlignment="Left" Margin="212,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" Width="246" Height="92" Text="Wiadomosc"/>
-        <Button x:Name="btnSendMessage" Content="Wyślij wiadomość" HorizontalAlignment="Left" Margin="590,217,0,0" VerticalAlignment="Top" Click="btnSendMessage_Click"/>
-        <Button x:Name="btnDisconnect" Content="Odłącz" HorizontalAlignment="Left" Margin="666,171,0,0" VerticalAlignment="Top" Click="btnDisconnect_Click"/>
 
+        <UniformGrid Rows="3" Columns="3" VerticalAlignment="Top" Margin="25,137,25,0">
+            <Button x:Name="btn1" Content="" Height="70" />
+            <Button x:Name="btn2" Content="" Height="70" />
+            <Button x:Name="btn3" Content="" Height="70" />
 
+            <Button x:Name="btn4" Content="" Height="70"/>
+            <Button x:Name="btn5" Content="" Height="70"/>
+            <Button x:Name="btn6" Content="" Height="70"/>
 
+            <Button x:Name="btn7" Content="" Height="70"/>
+            <Button x:Name="btn8" Content="" Height="70"/>
+            <Button x:Name="btn9" Content="" Height="70"/>
+
+        </UniformGrid>
+        <Label x:Name="lblPlayerTurn" Content="Label" HorizontalAlignment="Center" Margin="0,30,0,0" VerticalAlignment="Top" Width="330"/>
     </Grid>
+
+
+
 </Window>

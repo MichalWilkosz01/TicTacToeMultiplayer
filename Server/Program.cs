@@ -14,7 +14,8 @@ namespace Server
         private static TcpListener? listener;
         private static readonly ConcurrentDictionary<int, TcpClient> clients = new ConcurrentDictionary<int, TcpClient>();
         private static int clientIdCounter = 0;
-        private static readonly SemaphoreSlim clientSemaphore = new SemaphoreSlim(1, 1);
+        private static int? firstClientId = null; // ID pierwszego klienta
+        private static readonly object lockObj = new object(); // Do synchronizacji dostępu do firstClientId
 
         static async Task Main(string[] args)
         {
@@ -29,6 +30,7 @@ namespace Server
                 clients[clientId] = tcpClient;
                 Console.WriteLine($"Client {clientId} connected.");
 
+                // Rozpocznij obsługę klienta
                 _ = HandleClientAsync(clientId, tcpClient);
             }
         }
@@ -39,7 +41,24 @@ namespace Server
             var stream = tcpClient.GetStream();
 
             try
-            {
+            {             
+                string sign;
+                lock (lockObj)
+                {
+                    if (firstClientId == null)
+                    {                     
+                        firstClientId = clientId;
+                        sign = "X";
+                    }
+                    else
+                    {                     
+                        sign = "O";
+                    }
+                }
+                var signMessage = $"SIGN:{sign}";
+                var signBuffer = Encoding.UTF8.GetBytes(signMessage);
+                await stream.WriteAsync(signBuffer, 0, signBuffer.Length);
+
                 while (tcpClient.Connected)
                 {
                     int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
@@ -48,7 +67,6 @@ namespace Server
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     Console.WriteLine($"Received from client {clientId}: {message}");
 
-                    // Broadcast to other clients
                     await BroadcastMessageAsync(clientId, message);
                 }
             }
@@ -66,31 +84,22 @@ namespace Server
 
         private static async Task BroadcastMessageAsync(int senderId, string message)
         {
-            await clientSemaphore.WaitAsync();
-
-            try
+            foreach (var kvp in clients)
             {
-                foreach (var kvp in clients)
+                if (kvp.Key == senderId) continue;
+
+                var client = kvp.Value;
+                var stream = client.GetStream();
+                var buffer = Encoding.UTF8.GetBytes(message);
+
+                try
                 {
-                    if (kvp.Key == senderId) continue;
-
-                    var client = kvp.Value;
-                    var stream = client.GetStream();
-                    var buffer = Encoding.UTF8.GetBytes(message);
-
-                    try
-                    {
-                        await stream.WriteAsync(buffer, 0, buffer.Length);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error sending to client {kvp.Key}: {ex.Message}");
-                    }
+                    await stream.WriteAsync(buffer, 0, buffer.Length);
                 }
-            }
-            finally
-            {
-                clientSemaphore.Release();
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sending to client {kvp.Key}: {ex.Message}");
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Net.Sockets;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,17 +13,15 @@ namespace Client
         private const string serverIp = "127.0.0.1";
         private const int port = 13000;
 
-        private BackgroundWorker MessageReceiver = new BackgroundWorker();
         private TcpClient? tcpClient;
         private NetworkStream? stream;
 
-        private char PlayerChar = 'X';
-        private char OpponentChar = 'O';
+        private char PlayerChar;
+        private char OpponentChar;
 
         public MainWindow()
         {
             InitializeComponent();
-            MessageReceiver.DoWork += MessageReceiver_DoWork;
             ConnectToServer();
         }
 
@@ -34,8 +32,12 @@ namespace Client
                 tcpClient = new TcpClient();
                 await tcpClient.ConnectAsync(serverIp, port);
                 stream = tcpClient.GetStream();
-                MessageReceiver.RunWorkerAsync();
-                lblPlayerTurn.Content = "Connected to server!";
+
+               
+                _ = Task.Run(MessageReceiverAsync);
+   
+               
+                await GetPlayerSignAsync();
             }
             catch (Exception ex)
             {
@@ -43,82 +45,110 @@ namespace Client
             }
         }
 
-        private void MessageReceiver_DoWork(object sender, DoWorkEventArgs e)
+        private async Task GetPlayerSignAsync()
         {
+            if (stream == null) return;
+
+            var buffer = new byte[1024];
+            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+            if (bytesRead > 0)
+            {
+                string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                if (message.StartsWith("SIGN:"))
+                {
+                    PlayerChar = message[5]; 
+                    OpponentChar = PlayerChar == 'X' ? 'O' : 'X';
+                }
+                lblPlayerTurn.Content = "Connected to server! ";
+                if (OpponentChar == 'X')
+                {
+                    lblPlayerTurn.Content += "Opponent's Turn";
+                    FreezeBoard();
+                } else
+                {
+                    lblPlayerTurn.Content += "Your Turn";
+                }
+            }
+        }
+
+        private async Task MessageReceiverAsync()
+        {
+            if (stream == null) return;
+
+            var buffer = new byte[1024];
             while (tcpClient?.Connected == true)
             {
                 try
                 {
-                    var buffer = new byte[1024];
-                    int bytesRead = stream!.Read(buffer, 0, buffer.Length);
+                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                     if (bytesRead == 0) break;
-
+           
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     Dispatcher.Invoke(() => ProcessMessage(message));
+                    Dispatcher.Invoke(CheckResult);
+
+                    
+
                 }
                 catch (Exception ex)
                 {
                     Dispatcher.Invoke(() => MessageBox.Show($"Error receiving message: {ex.Message}"));
                     break;
                 }
+                
             }
+           
         }
 
         private void ProcessMessage(string message)
         {
-            // Assume message format is "move:1" where 1 is the button number
             if (message.StartsWith("move:"))
             {
-                int move = int.Parse(message.Substring(5));
-                UpdateBoard(move, OpponentChar);
-                lblPlayerTurn.Content = "Your Turn!";
-                UnfreezeBoard();
+                if (int.TryParse(message.Substring(5), out int move))
+                {
+                    UpdateBoard(move, OpponentChar);
+                    lblPlayerTurn.Content = "Your Turn!";
+                    UnfreezeBoard();
+                }
             }
         }
 
         private void UpdateBoard(int move, char playerChar)
         {
-            switch (move)
+            Button? button = GetButtonByMove(move);
+            if (button != null)
             {
-                case 1:
-                    btn1.Content = playerChar.ToString();
-                    break;
-                case 2:
-                    btn2.Content = playerChar.ToString();
-                    break;
-                case 3:
-                    btn3.Content = playerChar.ToString();
-                    break;
-                case 4:
-                    btn4.Content = playerChar.ToString();
-                    break;
-                case 5:
-                    btn5.Content = playerChar.ToString();
-                    break;
-                case 6:
-                    btn6.Content = playerChar.ToString();
-                    break;
-                case 7:
-                    btn7.Content = playerChar.ToString();
-                    break;
-                case 8:
-                    btn8.Content = playerChar.ToString();
-                    break;
-                case 9:
-                    btn9.Content = playerChar.ToString();
-                    break;
-            }
+                button.Content = playerChar.ToString();
+            }         
+        }
+
+        private Button? GetButtonByMove(int move)
+        {
+            return move switch
+            {
+                1 => btn1,
+                2 => btn2,
+                3 => btn3,
+                4 => btn4,
+                5 => btn5,
+                6 => btn6,
+                7 => btn7,
+                8 => btn8,
+                9 => btn9,
+                _ => null
+            };
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
-            int move = int.Parse(button.Tag.ToString());
-            UpdateBoard(move, PlayerChar);
-            FreezeBoard();
-            lblPlayerTurn.Content = "Opponent's Turn!";
-
-            SendMove(move);
+            if (sender is Button button && int.TryParse(button.Tag.ToString(), out int move))
+            {
+                UpdateBoard(move, PlayerChar);
+                FreezeBoard();
+                lblPlayerTurn.Content = "Opponent's Turn!";
+                SendMove(move);
+                CheckResult();
+            }
         }
 
         private async void SendMove(int move)
@@ -129,7 +159,7 @@ namespace Client
                 {
                     string message = $"move:{move}";
                     var buffer = Encoding.UTF8.GetBytes(message);
-                    await stream!.WriteAsync(buffer, 0, buffer.Length);
+                    await stream.WriteAsync(buffer, 0, buffer.Length);
                 }
                 catch (Exception ex)
                 {
@@ -140,45 +170,107 @@ namespace Client
 
         private void FreezeBoard()
         {
-            btn1.IsEnabled = false;
-            btn2.IsEnabled = false;
-            btn3.IsEnabled = false;
-            btn4.IsEnabled = false;
-            btn5.IsEnabled = false;
-            btn6.IsEnabled = false;
-            btn7.IsEnabled = false;
-            btn8.IsEnabled = false;
-            btn9.IsEnabled = false;
+            SetButtonsEnabled(false);
         }
 
         private void UnfreezeBoard()
         {
-            if (btn1.Content.ToString() == "")
-                btn1.IsEnabled = true;
-            if (btn2.Content.ToString() == "")
-                btn2.IsEnabled = true;
-            if (btn3.Content.ToString() == "")
-                btn3.IsEnabled = true;
-            if (btn4.Content.ToString() == "")
-                btn4.IsEnabled = true;
-            if (btn5.Content.ToString() == "")
-                btn5.IsEnabled = true;
-            if (btn6.Content.ToString() == "")
-                btn6.IsEnabled = true;
-            if (btn7.Content.ToString() == "")
-                btn7.IsEnabled = true;
-            if (btn8.Content.ToString() == "")
-                btn8.IsEnabled = true;
-            if (btn9.Content.ToString() == "")
-                btn9.IsEnabled = true;
+            foreach (var button in new[] { btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9 })
+            {
+                if (button.Content == null)
+                {
+                    button.IsEnabled = true;
+                }
+            }
         }
 
-        private void Window_Closing(object sender, CancelEventArgs e)
+        private void SetButtonsEnabled(bool enabled)
         {
-            MessageReceiver.WorkerSupportsCancellation = true;
-            MessageReceiver.CancelAsync();
+            foreach (var button in new[] { btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9 })
+            {
+                button.IsEnabled = enabled;
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
             stream?.Close();
             tcpClient?.Close();
         }
+        private void CheckResult()
+        {
+        
+            char GetButtonContent(Button button) =>
+                button.Content != null ? button.Content.ToString()[0] : ' ';
+
+            // Helper method to check if a line has the same char
+            bool CheckLine(Button b1, Button b2, Button b3)
+            {
+                char c1 = GetButtonContent(b1);
+                char c2 = GetButtonContent(b2);
+                char c3 = GetButtonContent(b3);
+                return c1 == c2 && c2 == c3 && c1 != ' ';
+            }
+
+            
+            if (CheckLine(btn1, btn2, btn3))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn1) == PlayerChar ? "You Won!" : "Opponent Won";               
+                return;
+            }
+            if (CheckLine(btn4, btn5, btn6))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn4) == PlayerChar ? "You Won!" : "Opponent Won";
+              
+                return;
+            }
+
+            if (CheckLine(btn7, btn8, btn9))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn7) == PlayerChar ? "You Won!" : "Opponent Won";
+                return;
+            }
+
+
+            if (CheckLine(btn1, btn4, btn7))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn1) == PlayerChar ? "You Won!" : "Opponent Won";
+                return;
+            }
+            if (CheckLine(btn2, btn5, btn8))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn2) == PlayerChar ? "You Won!" : "Opponent Won";
+                return;
+            }
+            if (CheckLine(btn3, btn6, btn9))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn3) == PlayerChar ? "You Won!" : "Opponent Won";
+                return;
+            }
+
+
+            if (CheckLine(btn1, btn5, btn9))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn1) == PlayerChar ? "You Won!" : "Opponent Won";
+                return;
+            }
+
+            if (CheckLine(btn3, btn5, btn7))
+            {
+                lblPlayerTurn.Content = GetButtonContent(btn3) == PlayerChar ? "You Won!" : "Opponent Won";
+                return;
+            }
+
+
+            bool IsDraw() =>
+                !new[] { btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9 }
+                    .Any(b => b.Content == null);
+
+            if (IsDraw())
+            {
+                MessageBox.Show("It's a draw!");
+            }
+        }
+      
     }
 }

@@ -14,8 +14,10 @@ namespace Server
         private static TcpListener? listener;
         private static readonly ConcurrentDictionary<int, TcpClient> clients = new ConcurrentDictionary<int, TcpClient>();
         private static int clientIdCounter = 0;
-        private static int? firstClientId = null; // ID pierwszego klienta
-        private static readonly object lockObj = new object(); // Do synchronizacji dostępu do firstClientId
+        private static int? firstClientId = null;
+
+        // Zmieniono SemaphoreSlim na Semaphore
+        private static readonly Semaphore semaphore = new Semaphore(1, 1);
 
         static async Task Main(string[] args)
         {
@@ -30,7 +32,6 @@ namespace Server
                 clients[clientId] = tcpClient;
                 Console.WriteLine($"Client {clientId} connected.");
 
-                // Rozpocznij obsługę klienta
                 _ = HandleClientAsync(clientId, tcpClient);
             }
         }
@@ -41,20 +42,29 @@ namespace Server
             var stream = tcpClient.GetStream();
 
             try
-            {             
+            {
                 string sign;
-                lock (lockObj)
+
+                // Zamiast WaitAsync używamy WaitOne, co jest operacją synchroniczną
+                semaphore.WaitOne();
+                try
                 {
                     if (firstClientId == null)
-                    {                     
+                    {
                         firstClientId = clientId;
                         sign = "X";
                     }
                     else
-                    {                     
+                    {
                         sign = "O";
                     }
                 }
+                finally
+                {
+                    // Użycie Release w Semaphore
+                    semaphore.Release();
+                }
+
                 var signMessage = $"SIGN:{sign}";
                 var signBuffer = Encoding.UTF8.GetBytes(signMessage);
                 await stream.WriteAsync(signBuffer, 0, signBuffer.Length);

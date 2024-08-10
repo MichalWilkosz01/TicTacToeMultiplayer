@@ -2,33 +2,53 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Tic Tac Toe" Height="450" Width="800"
+        Background="#FFFAF3E0"
         Closing="Window_Closing">
-    <Grid>
+    <Grid Margin="0,0,-11,-69">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Label x:Name="lblPlayerTurn" Content="Waiting for connection..." HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" Margin="10"/>
-        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+        <!-- Label informujący o stanie gry -->
+        <Label x:Name="lblPlayerTurn" 
+               Content="Waiting for connection..." 
+               HorizontalAlignment="Left" 
+               VerticalAlignment="Center" 
+               FontSize="20" 
+               Margin="278,0,0,0" 
+               FontWeight="Bold"
+               Foreground="#333333"/>
+
+        <!-- Siatka do przycisków Tic Tac Toe -->
+        <Grid Grid.Row="1" 
+              HorizontalAlignment="Left" 
+              VerticalAlignment="Top"
+              Background="#FFF3E9C6"
+              Margin="225,3,0,0"
+              Width="350"
+              Height="350">
             <Grid.RowDefinitions>
-                <RowDefinition Height="100"/>
-                <RowDefinition Height="100"/>
-                <RowDefinition Height="100"/>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Button x:Name="btn1" Grid.Row="0" Grid.Column="0" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="1"/>
-            <Button x:Name="btn2" Grid.Row="0" Grid.Column="1" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="2"/>
-            <Button x:Name="btn3" Grid.Row="0" Grid.Column="2" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="3"/>
-            <Button x:Name="btn4" Grid.Row="1" Grid.Column="0" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="4"/>
-            <Button x:Name="btn5" Grid.Row="1" Grid.Column="1" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="5"/>
-            <Button x:Name="btn6" Grid.Row="1" Grid.Column="2" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="6"/>
-            <Button x:Name="btn7" Grid.Row="2" Grid.Column="0" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="7"/>
-            <Button x:Name="btn8" Grid.Row="2" Grid.Column="1" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="8"/>
-            <Button x:Name="btn9" Grid.Row="2" Grid.Column="2" Width="100" Height="100" FontSize="24" Click="Button_Click" Tag="9"/>
+
+            <!-- Przyciski Tic Tac Toe -->
+            <Button x:Name="btn1" Grid.Row="0" Grid.Column="0" FontSize="24" Click="Button_Click" Tag="1"/>
+            <Button x:Name="btn2" Grid.Row="0" Grid.Column="1" FontSize="24" Click="Button_Click" Tag="2"/>
+            <Button x:Name="btn3" Grid.Row="0" Grid.Column="2" FontSize="24" Click="Button_Click" Tag="3"/>
+            <Button x:Name="btn4" Grid.Row="1" Grid.Column="0" FontSize="24" Click="Button_Click" Tag="4"/>
+            <Button x:Name="btn5" Grid.Row="1" Grid.Column="1" FontSize="24" Click="Button_Click" Tag="5"/>
+            <Button x:Name="btn6" Grid.Row="1" Grid.Column="2" FontSize="24" Click="Button_Click" Tag="6"/>
+            <Button x:Name="btn7" Grid.Row="2" Grid.Column="0" FontSize="24" Click="Button_Click" Tag="7"/>
+            <Button x:Name="btn8" Grid.Row="2" Grid.Column="1" FontSize="24" Click="Button_Click" Tag="8"/>
+            <Button x:Name="btn9" Grid.Row="2" Grid.Column="2" FontSize="24" Click="Button_Click" Tag="9"/>
         </Grid>
     </Grid>
 </Window>
